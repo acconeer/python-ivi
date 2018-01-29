@@ -117,7 +117,7 @@ class rohdeschwarzBaseRFSigGen(scpi.common.IdnCommand, scpi.common.Reset, scpi.c
             raise ivi.OutOfRangeException()
         self._write("POW %e dBm" % value)
         self._rf_level = value
-        self._rf_rms_voltage_level = _dbm_to_rms(value)
+        self._rf_rms_voltage_level = self._dbm_to_rms(value)
   
     def _get_rf_rms_voltage_level(self):
         """
@@ -134,7 +134,7 @@ class rohdeschwarzBaseRFSigGen(scpi.common.IdnCommand, scpi.common.Reset, scpi.c
             raise ivi.OutOfRangeException()
         self._write("POW %e V" % value)
         self._rf_rms_voltage_level = value
-        self._rf_level = _rms_to_dbm(value)
+        self._rf_level = self._rms_to_dbm(value)
     
     def _get_rf_output_enabled(self):
         "Check if RF output is enabled, Returns True if enabled"
