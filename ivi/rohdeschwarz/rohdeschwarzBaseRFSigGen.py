@@ -87,7 +87,7 @@ class rohdeschwarzBaseRFSigGen(scpi.common.IdnCommand, scpi.common.Reset, scpi.c
         
         # reset
         if reset:
-            self.utility_reset()
+            self.utility.reset()
         
     def _get_rf_frequency(self):
         "Reads the frequency of the generated RF output signal. The unit is Hertz"
