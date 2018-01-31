@@ -78,7 +78,7 @@ class rohdeschwarzBaseRFSigGen(scpi.common.IdnCommand, scpi.common.Reset, scpi.c
             self._clear()
         
         # check ID
-        if id_query:
+        if id_query and not self._driver_operation_simulate:
             id = self.identity.instrument_model
             id_check = self._instrument_id
             id_short = id[:len(id_check)]
@@ -91,7 +91,9 @@ class rohdeschwarzBaseRFSigGen(scpi.common.IdnCommand, scpi.common.Reset, scpi.c
         
     def _get_rf_frequency(self):
         "Reads the frequency of the generated RF output signal. The unit is Hertz"
-        self._rf_frequency = float(self._ask("FREQ?"))
+        if not self._driver_operation_simulate and not self._get_cache_valid():
+            self._rf_frequency = float(self._ask("FREQ?"))
+            self._set_cache_valid()
         return self._rf_frequency
     
     def _set_rf_frequency(self, value):
@@ -99,9 +101,11 @@ class rohdeschwarzBaseRFSigGen(scpi.common.IdnCommand, scpi.common.Reset, scpi.c
         value = float(value)
         if value < self._frequency_low or value > self._frequency_high:
             raise ivi.OutOfRangeException()
-        self._write("FREQ %e HZ" % value)
+        if not self._driver_operation_simulate:
+            self._write("FREQ %e HZ" % value)
         self._rf_frequency = value
-    
+        self._set_cache_valid()
+
     def _get_rf_level(self):
         """
         return set value in dBm of rf output level containing offset.
@@ -115,10 +119,12 @@ class rohdeschwarzBaseRFSigGen(scpi.common.IdnCommand, scpi.common.Reset, scpi.c
         value = float(value)
         if value < self._rf_level_low or value > self._rf_level_high:
             raise ivi.OutOfRangeException()
-        self._write("POW %e dBm" % value)
+        if not self._driver_operation_simulate:
+            self._write("POW %e dBm" % value)
         self._rf_level = value
         self._rf_rms_voltage_level = self._dbm_to_rms(value)
-  
+        self._set_cache_valid()
+
     def _get_rf_rms_voltage_level(self):
         """
         return set value in volt of rf output level containing offset.
@@ -132,9 +138,11 @@ class rohdeschwarzBaseRFSigGen(scpi.common.IdnCommand, scpi.common.Reset, scpi.c
         value = float(value)
         if value < self._rf_rms_voltage_level_low or value > self._rf_rms_voltage_level_high:
             raise ivi.OutOfRangeException()
-        self._write("POW %e V" % value)
+        if not self._driver_operation_simulate:
+            self._write("POW %e V" % value)
         self._rf_rms_voltage_level = value
         self._rf_level = self._rms_to_dbm(value)
+        self._set_cache_valid()
     
     def _get_rf_output_enabled(self):
         "Check if RF output is enabled, Returns True if enabled"
@@ -146,20 +154,25 @@ class rohdeschwarzBaseRFSigGen(scpi.common.IdnCommand, scpi.common.Reset, scpi.c
         If it is zero, the signal the RF signal generator produces does not appear at the output connector
         """
         value = bool(value)
-        if value:
-            self._write("OUTP ON")
-        else:
-            self._write("OUTP OFF")
+        if not self._driver_operation_simulate:
+            if value:
+                self._write("OUTP ON")
+            else:
+                self._write("OUTP OFF")
         self._rf_output_enabled = value
+        self._set_cache_valid()
 
     def _rf_disable_all_modulation(self):
         "Disables modulation, similar result as pressing MOD on/off."
-        self._write("MOD OFF")
+        if not self._driver_operation_simulate:
+            self._write("MOD OFF")
 
     def _rf_is_settled(self):
         "Queries if the RF output signal is currently settled. Returns true if settled"
-        return self._read_stb() & (1 << 7) == 0
-    
+        if not self._driver_operation_simulate:
+            return self._read_stb() & (1 << 7) == 0
+        return True
+
     def _rf_wait_until_settled(self, maximum_time):
         "This function waits maximumtime(milli seconds) until the state of the RF output signal has settled."
         t = 0
@@ -178,7 +191,8 @@ class rohdeschwarzBaseRFSigGen(scpi.common.IdnCommand, scpi.common.Reset, scpi.c
     def _utility_error_query(self):
         error_code = 0
         error_message = "No error"
-        error_msg_list = self._ask("system:error?").split(',')
-        error_code = int(error_msg_list[0])
-        error_message = ''.join(error_msg_list[1:]).strip(' "')
+        if not self._driver_operation_simulate:
+            error_msg_list = self._ask("system:error?").split(',')
+            error_code = int(error_msg_list[0])
+            error_message = ''.join(error_msg_list[1:]).strip(' "')
         return (error_code, error_message)
