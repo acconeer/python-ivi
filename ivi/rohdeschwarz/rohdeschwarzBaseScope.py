@@ -78,13 +78,15 @@ MeasurementFunctionMapping = {
         'fall_time': 'falltime',
         'frequency': 'frequency',
         'period': 'period',
+        'standard_deviation': 'stddev',
         'voltage_rms': 'vrms display',
-        'voltage_peak_to_peak': 'vpp',
+        'voltage_peak_to_peak': 'peak',
         'voltage_max': 'vmax',
         'voltage_min': 'vmin',
         'voltage_high': 'vtop',
         'voltage_low': 'vbase',
         'voltage_average': 'vaverage display',
+        'voltage_mean': 'mean',
         'width_negative': 'nwidth',
         'width_positive': 'pwidth',
         'duty_cycle_positive': 'dutycycle',
@@ -606,15 +608,23 @@ class rohdeschwarzBaseScope(scpi.common.IdnCommand, scpi.common.ErrorQuery, scpi
     def _get_channel_enabled(self, index):
         index = ivi.get_index(self._channel_name, index)
         if not self._driver_operation_simulate and not self._get_cache_valid(index=index):
-            self._channel_enabled[index] = bool(int(self._ask("%s:state?" % self._channel_name[index])))
-            self._set_cache_valid(index=index)
+            if index < self._analog_channel_count:
+                self._channel_enabled[index] = bool(int(self._ask("%s:state?" % self._channel_name[index])))
+                self._set_cache_valid(index=index)
+            else:
+                self._channel_enabled[index] = bool(int(self._ask("Logic1:state?")))
+                self._set_cache_valid(index=index)
         return self._channel_enabled[index]
 
     def _set_channel_enabled(self, index, value):
         value = bool(value)
         index = ivi.get_index(self._channel_name, index)
         if not self._driver_operation_simulate:
-            self._write("%s:state %d" % (self._channel_name[index], int(value)))
+            if index < self._analog_channel_count:
+                self._write("%s:state %d" % (self._channel_name[index], int(value)))
+            else:
+                state = ['OFF', 'ON']
+                self._write("Logic1:state %s" % (state[int(value)]))
         self._channel_enabled[index] = value
         self._set_cache_valid(index=index)
 
@@ -972,9 +982,48 @@ class rohdeschwarzBaseScope(scpi.common.IdnCommand, scpi.common.ErrorQuery, scpi
         y = [float(yi) for yi in y]
         return list(zip(x, y))
 
+    def _measurement_fetch_waveform_measurement(self, index, measurement_function, ref_channel = None):
+        index = ivi.get_index(self._channel_name, index)
+        meas_source1 = None
+        meas_source2 = None
+        channel_state = self._get_channel_enabled(index)
+        if index < self._analog_channel_count:
+            if measurement_function not in MeasurementFunctionMapping:
+                raise ivi.ValueNotSupportedException()
+            func = MeasurementFunctionMapping[measurement_function]
+            meas_source1 = "CH%d" %(index+1)
+        else:
+            if measurement_function not in MeasurementFunctionMappingDigital:
+                raise ivi.ValueNotSupportedException()
+            func = MeasurementFunctionMappingDigital[measurement_function]
+            meas_source1 = "D%d" %(ref_index - self._analog_channel_count)
+        if not self._driver_operation_simulate:
+            self._set_channel_enabled(index, True)
+            self._write("measurement1:enable on")
+            self._write("measurement1:main %s" % func)
+            self._write("measurement1:source %s" %meas_source1)
+            if measurement_function in ['ratio', 'phase', 'delay']:
+                if hasattr(ref_channel, 'name'):
+                    ref_channel = ref_channel.name
+                ref_index = ivi.get_index(self._channel_name, ref_channel)
+                ref_channel_state = self._get_channel_enabled(ref_index)
+                self._set_channel_enabled(ref_index, True)
+                if ref_index < self._analog_channel_count:
+                    meas_source2 = "CH%d" %(ref_index+1)
+                else:
+                    meas_source2 = "D%d" %(ref_index - self._analog_channel_count)
+                self._write("measurement1:source %s, %s"  %(meas_source1, meas_source2))
+            self._set_channel_enabled(ref_index, ref_channel_state)
+            self._set_channel_enabled(index, channel_state)
+            return float(self._ask("measurement1:result?"))
+        return 0
+
     def _measurement_read_waveform(self, index, maximum_time=None):
         # Add functionaly according to Python-IVI scope specification
         return self._measurement_fetch_waveform(index)
+
+    def _measurement_read_waveform_measurement(self, index, measurement_function, maximum_time):
+        return self._measurement_fetch_waveform_measurement(index, measurement_function)
 
     # extra.common
     def _display_fetch_screenshot(self, format='png', invert=False):
