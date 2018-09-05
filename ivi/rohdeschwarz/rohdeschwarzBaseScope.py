@@ -407,6 +407,7 @@ class rohdeschwarzBaseScope(scpi.common.IdnCommand, scpi.common.ErrorQuery, scpi
                 self._channel_label.append("D%d" % i)
                 self._channel_show_label.append(False)
                 self._digital_channel_name.append("digital%d" % i)
+                self._channel_trigger_level.append(0.0)
         
         self._channel_count = self._analog_channel_count + self._digital_channel_count
         self.channels._set_list(self._channel_name)
@@ -857,9 +858,12 @@ class rohdeschwarzBaseScope(scpi.common.IdnCommand, scpi.common.ErrorQuery, scpi
         index = ivi.get_index(self._channel_name, index)
         value = float(value)
         if not self._driver_operation_simulate:
-            if value > self._channel_range[index]:
-                raise ivi.OutOfRangeException("Trigger level cannot be outside vertical range")
-        self._write("trigger:a:level%d %e" % (index+1, value))
+            if index < self._analog_channel_count:
+                if value > self._channel_range[index]:
+                    raise ivi.OutOfRangeException("Trigger level cannot be outside vertical range")
+                self._write("trigger:a:level%d %e" % (index+1, value))
+            else:
+                self._write("%s:THRESHOLD %e" % (self._channel_name[index], value))
         self._channel_trigger_level[index] = value
         self._set_cache_valid(index=index)
         self._set_cache_valid(False, "trigger_level")
