@@ -61,6 +61,15 @@ TriggerCouplingMapping = {
         'hf_reject_ac': ('ac', 1, 0),
         'noise_reject_dc': ('dc', 0, 1),
         'noise_reject_ac': ('ac', 0, 1)}
+TriggerTypeMapping = {
+        'edge': 'edge',
+        'width': 'width',
+        'tv': 'tv',
+        #'immediate': '',
+        'line': 'line',
+        #'pattern': 'patt', # called logic trigger
+        #'bus': 'bus'
+        }
 PolarityMapping = {'positive': 'pos',
         'negative': 'neg'}
 GlitchConditionMapping = {'less_than': 'less',
@@ -819,10 +828,8 @@ class rohdeschwarzBaseScope(scpi.common.IdnCommand, scpi.common.ErrorQuery, scpi
             # First check if trigger holdoff is enabled. One can set a value but it won't apply before enabled.
             if self._ask("trigger:a:holdoff:mode?").lower() == 'off':
                 self._trigger_holdoff = 0.0
-                print('hej1')
             elif self._ask("trigger:a:holdoff:mode?").lower() == 'time':
                 self._trigger_holdoff = float(self._ask("trigger:a:holdoff:time?"))
-                print('hej2')
             self._set_cache_valid()
         return self._trigger_holdoff
 
@@ -945,6 +952,21 @@ class rohdeschwarzBaseScope(scpi.common.IdnCommand, scpi.common.ErrorQuery, scpi
         if not self._driver_operation_simulate:
             self._write("trigger:a:mode %s" % TriggerModifierMapping[value])
         self._trigger_modifier = value
+        self._set_cache_valid()
+
+    def _get_trigger_type(self):
+        if not self._driver_operation_simulate and not self._get_cache_valid():
+            value = self._ask("trigger:a:type?").lower()
+            self._trigger_type = [k for k,v in TriggerTypeMapping.items() if v==value][0]
+            self._set_cache_valid()
+        return self._trigger_type
+
+    def _set_trigger_type(self, value):
+        if value not in TriggerTypeMapping:
+            raise ivi.ValueNotSupportedException()
+        if not self._driver_operation_simulate:
+            self._write("trigger:a:type %s" % TriggerTypeMapping[value])
+        self._trigger_type = value
         self._set_cache_valid()
 
     def _measurement_abort(self):
