@@ -1012,6 +1012,7 @@ class rohdeschwarzBaseScope(scpi.common.IdnCommand, scpi.common.ErrorQuery, scpi
         index = ivi.get_index(self._channel_name, index)
         meas_source1 = None
         meas_source2 = None
+        ref_channel_state = None
         channel_state = self._get_channel_enabled(index)
         if index < self._analog_channel_count:
             if measurement_function not in MeasurementFunctionMapping:
@@ -1039,9 +1040,11 @@ class rohdeschwarzBaseScope(scpi.common.IdnCommand, scpi.common.ErrorQuery, scpi
                 else:
                     meas_source2 = "D%d" %(ref_index - self._analog_channel_count)
                 self._write("measurement1:source %s, %s"  %(meas_source1, meas_source2))
-            self._set_channel_enabled(ref_index, ref_channel_state)
+            result = float(self._ask("measurement1:result?"))
+            if ref_channel_state is not None:
+                self._set_channel_enabled(ref_index, ref_channel_state)
             self._set_channel_enabled(index, channel_state)
-            return float(self._ask("measurement1:result?"))
+            return result
         return 0
 
     def _measurement_read_waveform(self, index, maximum_time=None):
