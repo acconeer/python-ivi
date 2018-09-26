@@ -1009,7 +1009,7 @@ class rohdeschwarzBaseScope(scpi.common.IdnCommand, scpi.common.ErrorQuery, scpi
         y = [float(yi) for yi in y]
         return list(zip(x, y))
 
-    def _measurement_fetch_waveform_measurement(self, index, measurement_function, ref_channel = None):
+    def _measurement_fetch_waveform_measurement(self, index, measurement_function, ref_channel=None):
         index = ivi.get_index(self._channel_name, index)
         meas_source1 = None
         meas_source2 = None
