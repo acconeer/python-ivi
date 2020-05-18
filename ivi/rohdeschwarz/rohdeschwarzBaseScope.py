@@ -1476,4 +1476,4 @@ class rohdeschwarzBaseScope(scpi.common.IdnCommand, scpi.common.ErrorQuery, scpi
         if signal_slope not in DelaySlopeMapping or reference_slope not in DelaySlopeMapping:
             raise ivi.ValueNotSupportedException()
         if not self._driver_operation_simulate:
-            self._write("measurement1:delay:slope %s,%s" % (SlopeMapping[signal_slope], SlopeMapping[reference_slope]))
+            self._write("measurement1:delay:slope %s,%s" % (DelaySlopeMapping[signal_slope], DelaySlopeMapping[reference_slope]))
