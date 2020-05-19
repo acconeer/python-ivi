@@ -465,7 +465,7 @@ class rohdeschwarzBaseScope(scpi.common.IdnCommand, scpi.common.ErrorQuery, scpi
         self._add_method('measurement.set_delay_slope',
                         self._measurement_set_delay_slope,
                         ivi.Doc("""
-                        Specifies whether a rising or a falling edge triggers the oscilloscopnie.
+                        Specifies whether a rising or a falling edge is used for delay measurements.
                         Values:
                          * 'positive'
                          * 'negative'
