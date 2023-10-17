@@ -23,11 +23,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 """
+import logging
 
 from .. import ivi
 from .. import dcpwr
 from .. import scpi
 from .. import extra
+
+_logger = logging.getLogger(__name__)
+
 
 CurrentLimitBehavior = set([None, 'trip'])
 TrackingType = set(['floating'])
@@ -248,6 +252,12 @@ class agilentN6700(scpi.dcpwr.Base, scpi.dcpwr.Trigger,
         self._add_method('elog_abort',
                          self._elog_abort)
 
+        self._add_method('outputs[].acquire_abort',
+                         self._output_acquire_abort)
+
+        self._add_method('acquire_abort',
+                         self._acquire_abort)
+
         self._add_method('outputs[].fetch_elog_measurement',
                          self._output_fetch_elog_measurement,
                          ivi.Doc("""
@@ -281,9 +291,6 @@ class agilentN6700(scpi.dcpwr.Base, scpi.dcpwr.Trigger,
 
         self._add_method('trigger.elog_immediate',
                          self._trigger_elog_immediate)
-
-        self._add_method('trigger.abort',
-                         self._trigger_abort)
 
         self._init_outputs()
 
@@ -375,14 +382,14 @@ class agilentN6700(scpi.dcpwr.Base, scpi.dcpwr.Trigger,
     def _get_number_of_channels(self):
         if not self._driver_operation_simulate:
             self._output_count = int(self._ask("system:channel:count?"))
-            print("Detected %s power module(s)" % self._output_count)
+            _logger.info("Detected %s power module(s)" % self._output_count)
 
     def _get_power_modules(self):
         self._power_modules = []
         if not self._driver_operation_simulate:
             for k in range(self._output_count):
                 self._power_modules.append(self._ask("system:channel:model? (@%s)" % (k+1)))
-                print("Detected channel %s power module: %s" % (k+1, self._power_modules[k]))
+                _logger.info("Detected channel %s power module: %s" % (k+1, self._power_modules[k]))
 
     def _get_output_current_limit(self, index):
         index = ivi.get_index(self._output_name, index)
@@ -932,6 +939,15 @@ class agilentN6700(scpi.dcpwr.Base, scpi.dcpwr.Trigger,
         if not self._driver_operation_simulate:
             self._write("abort:elog (@1:%s)" % (self._output_count))
 
+    def _output_acquire_abort(self, index):
+        index = ivi.get_index(self._output_name, index)
+        if not self._driver_operation_simulate:
+            self._write("abort:acquire (@%s)" % (index + 1))
+
+    def _acquire_abort(self):
+        if not self._driver_operation_simulate:
+            self._write("abort:acquire (@1:%s)" % (self._output_count))
+
     # Trigger functions
     def _output_trigger_initiate(self, index):
         index = ivi.get_index(self._output_name, index)
@@ -958,13 +974,9 @@ class agilentN6700(scpi.dcpwr.Base, scpi.dcpwr.Trigger,
                     break;
 
             if not wtg_meas_set:
-                print("WTG_meas bit not set in status register")
+                _logger.warning("WTG_meas bit not set in status register")
 
             self._write("trigger:acquire:immediate (@%s)" % (index + 1))
-
-    def _trigger_abort(self):
-        if not self._driver_operation_simulate:
-            self._write("abort")
 
     def _trigger_initiate(self):
         if not self._driver_operation_simulate:
@@ -984,7 +996,7 @@ class agilentN6700(scpi.dcpwr.Base, scpi.dcpwr.Trigger,
                     break;
 
             if not wtg_meas_set:
-                print("WTG_meas bit not set in status register")
+                _logger.warning("WTG_meas bit not set in status register")
 
             self._write("trigger:acquire:immediate (@1:%s)" % (self._output_count))
 
