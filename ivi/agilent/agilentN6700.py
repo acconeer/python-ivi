@@ -963,12 +963,12 @@ class agilentN6700(scpi.dcpwr.Base, scpi.dcpwr.Trigger,
         index = ivi.get_index(self._output_name, index)
         if not self._driver_operation_simulate:
             self._write("initiate:immediate:acquire (@%s)" % (index + 1))
-            # Wait until WTG_meas (bit 3) bit is set to know when the instrument is
-            # ready to receive a trigger after initiating, or maximum 30 times
-            # to not block indefinitely
+            # Wait until WTG_meas (bit 3) bit is set in the Status Operation Condition
+            # to know when the instrument is ready to receive a trigger after initiating,
+            # or maximum 30 times to not block indefinitely
             wtg_meas_set = False
             for loop_count in range(30):
-                operation = int(self._ask("stat:oper? (@%s)" % (index+1)))
+                operation = int(self._ask("stat:oper:cond? (@%s)" % (index+1)))
                 if (operation & 8) == 8:
                     wtg_meas_set = True
                     break;
@@ -985,12 +985,12 @@ class agilentN6700(scpi.dcpwr.Base, scpi.dcpwr.Trigger,
     def _trigger_acquire_immediate(self):
         if not self._driver_operation_simulate:
             self._write("initiate:immediate:acquire (@1:%s)" % (self._output_count))
-            # Wait until WTG_meas (bit 3) bit is set to know when the instrument is
-            # ready to receive a trigger after initiating, or maximum 30 times
-            # to not block indefinitely
+            # Wait until WTG_meas (bit 3) bit is set in the Status Operation Condition
+            # to know when the instrument is ready to receive a trigger after initiating,
+            # or maximum 30 times to not block indefinitely
             wtg_meas_set = False
             for loop_count in range(30):
-                operation = [int(val) for val in self._ask("stat:oper? (@1:%s)" % (self._output_count)).split(',')]
+                operation = [int(val) for val in self._ask("stat:oper:cond? (@1:%s)" % (self._output_count)).split(',')]
                 if all([a == 8 for a in operation]):
                     wtg_meas_set = True
                     break;
