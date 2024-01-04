@@ -24,6 +24,7 @@ THE SOFTWARE.
 
 """
 import logging
+import time
 
 from .. import ivi
 from .. import dcpwr
@@ -972,9 +973,10 @@ class agilentN6700(scpi.dcpwr.Base, scpi.dcpwr.Trigger,
                 if (operation & 8) == 8:
                     wtg_meas_set = True
                     break;
+                time.sleep(1e-3)
 
             if not wtg_meas_set:
-                _logger.warning("WTG_meas bit not set in status register")
+                _logger.warning(f"WTG_meas bit not set in status register for channel {index}")
 
             self._write("trigger:acquire:immediate (@%s)" % (index + 1))
 
@@ -994,6 +996,7 @@ class agilentN6700(scpi.dcpwr.Base, scpi.dcpwr.Trigger,
                 if all([a == 8 for a in operation]):
                     wtg_meas_set = True
                     break;
+                time.sleep(1e-3)
 
             if not wtg_meas_set:
                 _logger.warning("WTG_meas bit not set in status register")
