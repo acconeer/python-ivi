@@ -130,6 +130,13 @@ class agilentN6700(scpi.dcpwr.Base, scpi.dcpwr.Trigger,
                 'ovp_max': 50.0,
                 'current_max': 1.5,
                 'ocp_max': 1.5
+            },
+            'N6781A': {
+                'range': (20, 1.0),
+                'voltage_max': 20.0,
+                'ovp_max': 20.0,
+                'current_max': 3.0,
+                'ocp_max': 3.0
             }
         }
 
