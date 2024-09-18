@@ -37,7 +37,7 @@ def parse_visa_resource_string(resource_string):
     # ASRL::/dev/ttyUSB0::INSTR
     # ASRL::/dev/ttyUSB0,9600::INSTR
     # ASRL::/dev/ttyUSB0,9600,8n1::INSTR
-    m = re.match('^(?P<prefix>(?P<type>ASRL)\d*)(::(?P<arg1>[^\s:]+))?(::(?P<suffix>INSTR))$',
+    m = re.match(r'^(?P<prefix>(?P<type>ASRL)\d*)(::(?P<arg1>[^\s:]+))?(::(?P<suffix>INSTR))$',
             resource_string, re.I)
 
     if m is not None:
