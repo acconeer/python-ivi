@@ -31,7 +31,7 @@ def parse_visa_resource_string(resource_string):
     # valid resource strings:
     # GPIB::10::INSTR
     # GPIB0::10::INSTR
-    m = re.match('^(?P<prefix>(?P<type>GPIB)\d*)(::(?P<arg1>[^\s:]+))(::(?P<suffix>INSTR))$',
+    m = re.match(r'^(?P<prefix>(?P<type>GPIB)\d*)(::(?P<arg1>[^\s:]+))(::(?P<suffix>INSTR))$',
             resource_string, re.I)
 
     if m is not None:
