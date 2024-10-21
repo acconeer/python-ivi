@@ -24,6 +24,7 @@ THE SOFTWARE.
 
 """
 
+import struct
 from .. import ivi
 from .. import scope
 from .. import scpi
@@ -1159,14 +1160,35 @@ class rohdeschwarzBaseScope(scpi.common.IdnCommand, scpi.common.ErrorQuery, scpi
         if self._driver_operation_simulate:
             return list()
 
-        data_header = self._ask("%s:data:header?" % self._channel_name[index]).split(',') # x0, xN, record length, values/sample interval
+        channel_name = self._channel_name[index]
+
+        data_header = self._ask("%s:data:header?" % channel_name).split(',') # x0, xN, record length, values/sample interval
         x0 = float(data_header[0])
         xN = float(data_header[1])
         N = int(data_header[2])
         dx = (xN - x0) / N
         x = [(x0 + i * dx) for i in range(0, N)]
-        y = self._ask("%s:data?" % self._channel_name[index]).split(',')
-        y = [float(yi) for yi in y]
+
+        if channel_name.startswith("digital"):
+            # Use UINT8 for digital signals to keep data transfer to a minimum
+            self._write("FORMat UINT,8")
+
+            self._write("%s:data?" % channel_name)
+            data = self._read_ieee_block()
+            y = struct.unpack(f"{len(x)}B", data)
+        else:
+            # Use float for analog signals to keep data transfer to a minimum
+            self._write("FORMat REAL")
+            self._write("FORM:BORD LSBF")
+
+            self._write("%s:data?" % channel_name)
+            data = self._read_ieee_block()
+
+            # Decode IEEE 754 Floating-Point-Format
+            y = struct.unpack(f"{len(x)}f", data)
+
+        # Restore ASCII format (default) if this is expected elsewhere
+        self._write("FORMat ASC")
         return list(zip(x, y))
 
     def _measurement_fetch_waveform_measurement(self, index, measurement_function, result_type=None, ref_channel=None):
