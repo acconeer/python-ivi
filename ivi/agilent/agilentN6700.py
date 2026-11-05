@@ -33,6 +33,15 @@ from .. import extra
 
 _logger = logging.getLogger(__name__)
 
+# Output state to the condition register and bit mask that report it
+_OUTPUT_STATE_BITS = {
+    'constant_voltage': ('oper', 1 << 0),
+    'constant_current': ('oper', 1 << 1),
+    'over_voltage': ('ques', 1 << 0),
+    'over_current': ('ques', 1 << 1),
+    'unregulated': ('ques', 1 << 10),
+}
+
 
 CurrentLimitBehavior = set([None, 'trip'])
 TrackingType = set(['floating'])
@@ -449,6 +458,16 @@ class agilentN6700(scpi.dcpwr.Base, scpi.dcpwr.Trigger,
             self._write("output %s, (@%s)" % (int(value), index+1))
         self._output_enabled[index] = value
         self._set_cache_valid(index=index)
+
+    def _output_query_output_state(self, index, state):
+        channel = ivi.get_index(self._output_name, index) + 1
+        if state not in dcpwr.OutputState:
+            raise ivi.ValueNotSupportedException()
+        if self._driver_operation_simulate:
+            return False
+        register, mask = _OUTPUT_STATE_BITS[state]
+        status = int(self._ask("stat:%s:cond? (@%s)" % (register, channel)))
+        return status & mask != 0
 
     def _get_output_ovp_enabled(self, index):
         # Output voltage protection is always enabled and at least limited by the maximum output voltage
