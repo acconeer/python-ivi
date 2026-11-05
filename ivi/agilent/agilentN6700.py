@@ -1000,7 +1000,7 @@ class agilentN6700(scpi.dcpwr.Base, scpi.dcpwr.Trigger,
             wtg_meas_set = False
             for loop_count in range(30):
                 operation = [int(val) for val in self._ask("stat:oper:cond? (@1:%s)" % (self._output_count)).split(',')]
-                if all([a == 8 for a in operation]):
+                if all((a & 8) == 8 for a in operation):
                     wtg_meas_set = True
                     break;
                 time.sleep(1e-3)
