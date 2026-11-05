@@ -33,6 +33,9 @@ from .. import extra
 
 _logger = logging.getLogger(__name__)
 
+# Status Operation Condition: waiting for a measurement trigger
+_OPER_WTG_MEAS = 1 << 3
+
 # Output state to the condition register and bit mask that report it
 _OUTPUT_STATE_BITS = {
     'constant_voltage': ('oper', 1 << 0),
@@ -986,25 +989,25 @@ class agilentN6700(scpi.dcpwr.Base, scpi.dcpwr.Trigger,
         if not self._driver_operation_simulate:
             self._write("trigger:elog:immediate (@%s)" % (index + 1))
 
+    def _acquire_immediate(self, channels):
+        """Initiate and trigger an acquisition on the SCPI channel list"""
+        self._write("initiate:immediate:acquire (@%s)" % channels)
+        # Don't trigger before every channel waits for it, poll at most 30
+        # times to not block indefinitely
+        for _ in range(30):
+            conditions = self._ask("stat:oper:cond? (@%s)" % channels).split(',')
+            if all(int(condition) & _OPER_WTG_MEAS for condition in conditions):
+                break
+            time.sleep(1e-3)
+        else:
+            _logger.warning("WTG_meas bit not set in status register for channel(s) %s" % channels)
+
+        self._write("trigger:acquire:immediate (@%s)" % channels)
+
     def _output_trigger_acquire_immediate(self, index):
         index = ivi.get_index(self._output_name, index)
         if not self._driver_operation_simulate:
-            self._write("initiate:immediate:acquire (@%s)" % (index + 1))
-            # Wait until WTG_meas (bit 3) bit is set in the Status Operation Condition
-            # to know when the instrument is ready to receive a trigger after initiating,
-            # or maximum 30 times to not block indefinitely
-            wtg_meas_set = False
-            for loop_count in range(30):
-                operation = int(self._ask("stat:oper:cond? (@%s)" % (index+1)))
-                if (operation & 8) == 8:
-                    wtg_meas_set = True
-                    break;
-                time.sleep(1e-3)
-
-            if not wtg_meas_set:
-                _logger.warning(f"WTG_meas bit not set in status register for channel {index}")
-
-            self._write("trigger:acquire:immediate (@%s)" % (index + 1))
+            self._acquire_immediate("%d" % (index + 1))
 
     def _trigger_initiate(self):
         if not self._driver_operation_simulate:
@@ -1012,22 +1015,7 @@ class agilentN6700(scpi.dcpwr.Base, scpi.dcpwr.Trigger,
 
     def _trigger_acquire_immediate(self):
         if not self._driver_operation_simulate:
-            self._write("initiate:immediate:acquire (@1:%s)" % (self._output_count))
-            # Wait until WTG_meas (bit 3) bit is set in the Status Operation Condition
-            # to know when the instrument is ready to receive a trigger after initiating,
-            # or maximum 30 times to not block indefinitely
-            wtg_meas_set = False
-            for loop_count in range(30):
-                operation = [int(val) for val in self._ask("stat:oper:cond? (@1:%s)" % (self._output_count)).split(',')]
-                if all((a & 8) == 8 for a in operation):
-                    wtg_meas_set = True
-                    break;
-                time.sleep(1e-3)
-
-            if not wtg_meas_set:
-                _logger.warning("WTG_meas bit not set in status register")
-
-            self._write("trigger:acquire:immediate (@1:%s)" % (self._output_count))
+            self._acquire_immediate("1:%d" % self._output_count)
 
     def _trigger_elog_immediate(self):
         if not self._driver_operation_simulate:
