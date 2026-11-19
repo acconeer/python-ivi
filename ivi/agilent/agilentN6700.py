@@ -339,7 +339,7 @@ class agilentN6700(scpi.dcpwr.Base, scpi.dcpwr.Trigger,
 
         # reset
         if reset:
-            self.utility_reset()
+            self.utility.reset()
 
         # find initialized power modules
         self._get_number_of_channels()
