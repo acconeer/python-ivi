@@ -885,7 +885,10 @@ class agilentN6700(scpi.dcpwr.Base, scpi.dcpwr.Trigger,
         if not self._driver_operation_simulate:
             if max_records > 16384 or max_records < 1:
                 raise ivi.OutOfRangeException()
-            return [float(value) for value in self._ask(f'fetch:elog? {max_records},(@{index+1})').split(',')]
+            reply = self._ask("fetch:elog? %s,(@%s)" % (max_records, index+1))
+            if reply:
+                return [float(value) for value in reply.split(',')]
+        return []
 
     def _get_output_current_compensate(self, index):
         index = ivi.get_index(self._output_name, index)
