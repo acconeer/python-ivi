@@ -25,6 +25,8 @@ THE SOFTWARE.
 
 """
 
+import time
+
 from .. import ivi
 from .. import scpi
 from .. import rfsiggen
