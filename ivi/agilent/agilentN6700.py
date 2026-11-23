@@ -339,7 +339,7 @@ class agilentN6700(scpi.dcpwr.Base, scpi.dcpwr.Trigger,
 
         # reset
         if reset:
-            self.utility_reset()
+            self.utility.reset()
 
         # find initialized power modules
         self._get_number_of_channels()
@@ -424,7 +424,7 @@ class agilentN6700(scpi.dcpwr.Base, scpi.dcpwr.Trigger,
         if value < 0 or value > self._output_spec[self._power_modules[index]]['current_max']:
             raise ivi.OutOfRangeException()
         if not self._driver_operation_simulate:
-            self._write("source:current:level %f, (@%s)" % (value, index+1))
+            self._write("source:current:level %s, (@%s)" % (value, index+1))
         self._output_current_limit[index] = value
         self._set_cache_valid(index=index)
 
@@ -654,7 +654,7 @@ class agilentN6700(scpi.dcpwr.Base, scpi.dcpwr.Trigger,
     def _set_output_sweep_interval(self, index, value):
         index = ivi.get_index(self._output_name, index)
         if not self._driver_operation_simulate:
-            self._write("sense:sweep:tinterval %f, (@%s)" % (float(value), index+1))
+            self._write("sense:sweep:tinterval %s, (@%s)" % (float(value), index+1))
         self._output_sweep_interval[index] = float(value)
         self._set_cache_valid(index=index)
 
@@ -698,7 +698,7 @@ class agilentN6700(scpi.dcpwr.Base, scpi.dcpwr.Trigger,
     def _set_output_trigger_current_level(self, index, value):
         index = ivi.get_index(self._output_name, index)
         if not self._driver_operation_simulate:
-            self._write("trigger:acquire:current:level %f, (@%s)" % (float(value), index+1))
+            self._write("trigger:acquire:current:level %s, (@%s)" % (float(value), index+1))
         self._output_trigger_current_level[index] = float(value)
         self._set_cache_valid()
 
@@ -712,7 +712,7 @@ class agilentN6700(scpi.dcpwr.Base, scpi.dcpwr.Trigger,
     def _set_output_trigger_voltage_level(self, index, value):
         index = ivi.get_index(self._output_name, index)
         if not self._driver_operation_simulate:
-            self._write("trigger:acquire:voltage:level %f, (@%s)" % (float(value), index+1))
+            self._write("trigger:acquire:voltage:level %s, (@%s)" % (float(value), index+1))
         self._output_trigger_voltage_level[index] = float(value)
         self._set_cache_valid()
 
@@ -885,7 +885,10 @@ class agilentN6700(scpi.dcpwr.Base, scpi.dcpwr.Trigger,
         if not self._driver_operation_simulate:
             if max_records > 16384 or max_records < 1:
                 raise ivi.OutOfRangeException()
-            return [float(value) for value in self._ask(f'fetch:elog? {max_records},(@{index+1})').split(',')]
+            reply = self._ask("fetch:elog? %s,(@%s)" % (max_records, index+1))
+            if reply:
+                return [float(value) for value in reply.split(',')]
+        return []
 
     def _get_output_current_compensate(self, index):
         index = ivi.get_index(self._output_name, index)
