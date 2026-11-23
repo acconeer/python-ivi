@@ -45,5 +45,3 @@ class rohdeschwarzSMC100A(rohdeschwarzBaseRFSigGen):
         # rf rms voltage level limit in Volt
         self._rf_rms_voltage_level_low = 223.61e-9
         self._rf_rms_voltage_level_high = 1.993
-
-        self._initialize(*args, **kwargs)
